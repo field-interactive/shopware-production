@@ -1,8 +1,10 @@
+
 /var
 !/var/plugins.json
 /.*
 **/*.git
 **/node_modules
+**/vendor
 
 /config/jwt/*
 !/config/jwt/.gitignore
