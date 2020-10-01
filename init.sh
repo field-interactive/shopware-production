@@ -9,10 +9,3 @@ bin/console system:setup
 
 # create database with a basic setup (admin user and storefront sales channel)
 bin/console system:install --create-database --basic-setup --force
-
-#bin/console system:install --create-database --force
-#bin/console system:generate-jwt-secret
-#php fix-install.php
-#bin/console user:create "admin" --admin --password="shopware" -n
-#bin/console sales-channel:create:storefront --name=Storefront --url="http://localhost"
-#bin/console theme:change --all Storefront
