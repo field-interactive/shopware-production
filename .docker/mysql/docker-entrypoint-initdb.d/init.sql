@@ -1,12 +1,12 @@
 -- create databases
-CREATE DATABASE IF NOT EXISTS `application`;
-CREATE DATABASE IF NOT EXISTS `application_test`;
+CREATE DATABASE IF NOT EXISTS `shopware`;
+CREATE DATABASE IF NOT EXISTS `shopware_test`;
 
 -- create users
-CREATE USER 'application'@'%' IDENTIFIED BY 'application';
-CREATE USER 'application_test'@'%' IDENTIFIED BY 'application_test';
+CREATE USER 'app'@'%' IDENTIFIED BY 'app';
+CREATE USER 'app_test'@'%' IDENTIFIED BY 'app_test';
 
 --  grant rights
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
-GRANT ALL PRIVILEGES ON *.* TO 'application'@'%';
-GRANT ALL PRIVILEGES ON *.* TO 'application_test'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'app'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'app_test'@'%';
