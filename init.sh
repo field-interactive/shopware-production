@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #DESCRIPTION: Everything from "init" + demo data generation + administration build/deploy
-
 composer install --no-interaction --optimize-autoloader
 
 # setup the environment

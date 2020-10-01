@@ -41,24 +41,18 @@ If you are using a separate build server, consider having NPM and Node as build-
 To set up the environment and install with a basic setup run the following commands:
 
 ```bash
-# clone newest 6.1 patch version from github 
-git clone --branch=6.1 https://github.com/shopware/production shopware
+# clone newest 6.3 patch version from github
+git clone --branch=6.3 https://github.com/field-interactive/shopware-production shopware
 cd shopware
 
-# install shopware and dependencies according to the composer.lock 
-composer install
+#build and start the containers
+docker-compose up -d
 
-# setup the environment
-bin/console system:setup
-# or create .env yourself, if you need more control
-# create jwt secret: bin/console system:generate-jwt-secret
-# create app secret: APP_SECRET=$(bin/console system:generate-app-secret)
-# create .env
+#access the application container
+docker-compose run php bash
 
-# create database with a basic setup (admin user and storefront sales channel)
-bin/console system:install --create-database --basic-setup
-
-# or use the interactive installer in the browser: /recovery/install/index.php
+# install shopware and setup the environment
+./init.sh
 ```
 
 ## Update
@@ -196,7 +190,7 @@ You only need to require the things you want. If you only want to run shopware 6
     "require": {
         "php": "~7.2",
         "ocramius/package-versions": "1.4.0",
-        "shopware/core": "~v6.1.0"
+        "shopware/core": "~v6.3.0"
     }
 }
 ```
