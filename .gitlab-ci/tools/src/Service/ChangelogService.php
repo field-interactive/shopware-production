@@ -1,8 +1,6 @@
-<?php
-
+<?php declare(strict_types=1);
 
 namespace Shopware\CI\Service;
-
 
 use GuzzleHttp\Client;
 
@@ -24,6 +22,7 @@ class ChangelogService
         'en' => 11901,
         'de' => 11900,
     ];
+
     /**
      * @var Client
      */
@@ -42,7 +41,7 @@ class ChangelogService
             throw new \RuntimeException('Failed to decode json');
         }
 
-        $filtered = array_filter($versions, static function ($version) use ($onlyUnreleased) {
+        $filtered = array_filter($versions, static function (array $version) use ($onlyUnreleased) {
             return preg_match('/^6\./', $version['name'])
                 && (!$onlyUnreleased || !$version['released']);
         });
@@ -55,9 +54,6 @@ class ChangelogService
 
     /**
      * Normalizes the version and tries to find it
-     *
-     * @param string $version
-     * @return string
      */
     public function findVersion(string $version): string
     {
@@ -66,7 +62,7 @@ class ChangelogService
             return $version;
         }
 
-        $version = (string)str_replace('-', ' ', ltrim(trim($version), 'v'));
+        $version = (string) str_replace('-', ' ', ltrim(trim($version), 'v'));
         if (in_array($version, $versions, true)) {
             return $version;
         }
@@ -74,7 +70,7 @@ class ChangelogService
         throw new \RuntimeException('Version "' . $version . '" not found');
     }
 
-    public function fetchFixedIssues(string $version)
+    public function fetchFixedIssues(string $version): array
     {
         $version = $this->findVersion($version);
         $response = $this->client->request('GET', 'search', [
@@ -85,7 +81,7 @@ class ChangelogService
             'query' => [
                 'jql' => sprintf('project=\'NEXT\' AND status=Resolved AND resolution=done AND fixVersion=\'%s\' AND cf[10202]=Yes ORDER BY key ASC', $version),
                 'fields' => 'id,key,customfield_11901,customfield_11900,customfield_12101,customfield_12100',
-                'maxResults' => 1000
+                'maxResults' => 1000,
             ],
         ]);
 
@@ -105,7 +101,7 @@ class ChangelogService
 
         $changeLog = [];
 
-        foreach ($this->localeMapping as $locale => $changelogFieldId) {
+        foreach ($this->localeMapping as $locale => $_changelogFieldId) {
             $result[$locale] = [];
             foreach ($result['issues'] as $issue) {
                 $changelogText = trim($issue['fields']['customfield_' . $this->localeMapping[$locale]] ?? '');

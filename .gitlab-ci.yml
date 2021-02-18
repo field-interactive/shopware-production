@@ -13,6 +13,7 @@ variables:
 
 stages:
     - build
+    - analyze
     - test
     - prepare-release
     - release
@@ -77,10 +78,11 @@ Build Test Package:
         - git -C .platform remote set-url origin https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.shopware.com/shopware/6/product/platform.git
         # Find best matching branch. Example try: 6.3.2.1, 6.3.2, 6.3, master
         - export MATCHING_BRANCH=$(.gitlab-ci/tools/console release:show-platform-branch $TAG .platform)
-        - if [[ -z $MATCHING_BRANCH ]]; then echo "No matching branch found" exit 1; fi
-        - echo "Checkout platform branch $branch"
+        - if [[ -z $MATCHING_BRANCH ]]; then echo "No matching branch found"; exit 1; fi
+        - echo "Checkout platform branch $MATCHING_BRANCH"
         # fetch newest changes from $MATCHING_BRANCH
         - git -C .platform fetch origin ${MATCHING_BRANCH}
+        - git -C .platform log -n 5
         # set HEAD to newest commit in $$MATCHING_BRANCH
         - git -C .platform reset --soft FETCH_HEAD
         # split platform into separate repos/packages
@@ -95,9 +97,10 @@ Build Test Package:
         - docker build . -t "${CI_REGISTRY_IMAGE}:${IMAGE_TAG}"
         - mkdir artifacts || true
         - chmod 777 artifacts || true
+        - .gitlab-ci/changed-files.sh > artifacts/additional_update_files
         # TODO: get REFERENCE_INSTALLER_URL and REFERENCE_INSTALLER_SHA256 from shopware6.xml - use MINIMUM_VERSION
         # create package archive file
-        - docker run -v $PWD/artifacts:/artifacts -e REFERENCE_INSTALLER_URL -e REFERENCE_INSTALLER_SHA256 --entrypoint=bin/package.sh ${CI_REGISTRY_IMAGE}:${IMAGE_TAG}
+        - docker run -v $PWD/artifacts:/artifacts -e REFERENCE_INSTALLER_URL -e REFERENCE_INSTALLER_SHA256 --entrypoint=bin/package.sh ${CI_REGISTRY_IMAGE}:${IMAGE_TAG} /artifacts/additional_update_files
         - echo ${TAG} > artifacts/TAG
         - echo ${CI_JOB_ID} > artifacts/PACKAGE_JOB_ID
         - echo ${MATCHING_BRANCH} > artifacts/PLATFORM_BRANCH
@@ -107,6 +110,35 @@ Build Test Package:
         paths:
             - artifacts/
             - repos/
+
+Static Analysis:
+    stage: analyze
+    image: shopware/development:latest
+    only:
+        refs:
+            - merge_requests
+    script:
+        - composer install
+        - composer install -d .gitlab-ci/tools
+        - php .gitlab-ci/tools/vendor/bin/ecs check --config easy-coding-standard.php
+        - php .gitlab-ci/tools/vendor/bin/phpstan analyse
+        - php .gitlab-ci/tools/vendor/bin/psalm.phar
+
+Tools unit test:
+    stage: test
+    image: shopware/development:latest
+    only:
+        refs:
+            - merge_requests
+    script:
+        - composer install -d .gitlab-ci/tools
+        - php .gitlab-ci/tools/vendor/bin/phpunit --configuration .gitlab-ci/tools/phpunit.xml.dist --log-junit phpunit.junit.xml
+    artifacts:
+        when: always
+        paths:
+            - phpunit.junit.xml
+        reports:
+            junit: phpunit.junit.xml
 
 # Unit tests
 
@@ -230,7 +262,7 @@ Update (EN, Mysql 8.0):
     services:
         -   name: mysql:8.0.19
             alias: mysql
-            command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--default-authentication-plugin=mysql_native_password"]
+            command: [ "mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--default-authentication-plugin=mysql_native_password" ]
         -   name: elastic/elasticsearch:7.1.1
             alias: elasticsearch
             command: [ "bin/elasticsearch", "-Expack.security.enabled=false", "-Ediscovery.type=single-node" ]
