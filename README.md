@@ -40,6 +40,8 @@ If you are using a separate build server, consider having NPM and Node as build-
 
 To set up the environment and install with a basic setup run the following commands:
 
+### Docker
+
 ```bash
 # clone newest 6.3 patch version from github
 git clone --branch=6.3 https://github.com/field-interactive/shopware-production shopware
@@ -50,6 +52,25 @@ docker-compose up -d
 
 #access the application container
 docker-compose run php bash
+
+# install shopware and setup the environment
+./init.sh
+```
+
+### Migraw
+
+See [https://github.com/marcharding/migraw/](https://github.com/marcharding/migraw/)
+
+```bash
+# clone newest 6.3 patch version from github
+git clone --branch=6.3 https://github.com/field-interactive/shopware-production shopware
+cd shopware
+
+#build and start the containers (init.sh executed in the standard run)
+migraw up
+
+# access the application container
+migraw bash
 
 # install shopware and setup the environment
 ./init.sh

@@ -6,6 +6,7 @@ custom/*
 /bin/vendor/
 
 /.idea
+/.migraw
 /docker-compose.override.yml
 
 /config/packages/local.yaml

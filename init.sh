@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-#DESCRIPTION: Everything from "init" + demo data generation + administration build/deploy
+#set -o xtrace
+trap 'echo -e "\e[0;32m" && echo -ne $(date "+%Y-%m-%d %H:%M:%S") && echo " >> Executing: $BASH_COMMAND" && echo -e "\e[0m"' DEBUG
+mysql -h127.0.0.1 -uroot -e "CREATE DATABASE application;"
 composer install --no-interaction --optimize-autoloader
 
-# setup the environment
-bin/console assets:install
-bin/console system:setup
+# Avoid: Environment variable not found: "APP_URL"
+# see https://issues.shopware.com/issues/NEXT-12476
 
-# create database with a basic setup (admin user and storefront sales channel)
-bin/console system:install --create-database --basic-setup --force --locale=de-DE
+# setup the environment
+APP_URL=http://127.0.0.1 bin/console assets:install
+APP_URL=http://127.0.0.1 bin/console system:setup
+trap - DEBUG
