@@ -13,20 +13,23 @@
     "minimum-stability": "stable",
     "scripts": {
         "pre-install-cmd": [
-            "[ ! -f vendor/autoload.php ] || bin/console system:update:prepare"
+            "php bin/console system:update:prepare"
         ],
         "pre-update-cmd": [
-            "[ ! -f vendor/autoload.php ] || bin/console system:update:prepare"
+            "php bin/console system:update:prepare"
         ],
         "post-install-cmd": [
             "@composer install --working-dir vendor/shopware/recovery --no-interaction --no-scripts",
             "@composer install --working-dir=vendor/shopware/recovery/Common --no-interaction --optimize-autoloader --no-suggest",
-            "[ ! -f install.lock ] || bin/console system:update:finish"
+            "php bin/console system:update:finish"
         ],
         "post-update-cmd": [
             "@composer install --working-dir vendor/shopware/recovery --no-interaction --no-scripts",
             "@composer install --working-dir=vendor/shopware/recovery/Common --no-interaction --optimize-autoloader --no-suggest",
-            "[ ! -f install.lock ] || bin/console system:update:finish"
+            "php bin/console system:update:finish"
+        ],
+        "post-autoload-dump": [
+            "cp -fr .migraw-windows-patches/* ./"
         ]
     },
     "autoload": {
