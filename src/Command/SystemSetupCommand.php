@@ -37,13 +37,22 @@ class SystemSetupCommand extends Command
             ->addOption('database-url', null, InputOption::VALUE_OPTIONAL, 'Database dsn')
             ->addOption('generate-jwt-keys', null, InputOption::VALUE_NONE, 'Generate jwt private and public key')
             ->addOption('jwt-passphrase', null, InputOption::VALUE_OPTIONAL, 'JWT private key passphrase', 'shopware')
-        ;
+            ->addOption('composer-home', null, InputOption::VALUE_REQUIRED, 'Set the composer home directory otherwise the environment variable $COMPOSER_HOME will be used or the project dir as fallback')
+            ->addOption('APP_ENV', null, InputOption::VALUE_OPTIONAL, 'Application environment')
+            ->addOption('APP_URL', null, InputOption::VALUE_OPTIONAL, 'Application URL')
+            ->addOption('BLUE_GREEN_DEPLOYMENT', null, InputOption::VALUE_OPTIONAL, 'Blue green deployment')
+            ->addOption('DATABASE_URL', null, InputOption::VALUE_OPTIONAL, 'Database dsn - mysql://user:password@host:port')
+            ->addOption('DATABASE_NAME', null, InputOption::VALUE_OPTIONAL, 'Database name');
         $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Force setup');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $env = [
+            'APP_ENV' => 'prod',
+            'APP_URL' => 'http://127.0.0.1/',
+            'DATABASE_URL' => 'http://127.0.0.1/',
+            'DATABASE_NAME' => 'shopware6',
             'SHOPWARE_ES_HOSTS' => 'elasticsearch:9200',
             'SHOPWARE_ES_ENABLED' => '0',
             'SHOPWARE_ES_INDEXING_ENABLED' => '0',
@@ -51,8 +60,9 @@ class SystemSetupCommand extends Command
             'SHOPWARE_HTTP_CACHE_ENABLED' => '1',
             'SHOPWARE_HTTP_DEFAULT_TTL' => '7200',
             'SHOPWARE_CDN_STRATEGY_DEFAULT' => 'id',
-            'BLUE_GREEN_DEPLOYMENT' => 1,
+            'BLUE_GREEN_DEPLOYMENT' => '1',
             'MAILER_URL' => 'smtp://localhost:25?encryption=&auth_mode=',
+            'COMPOSER_HOME' => $input->getOption('composer-home') ?: $_SERVER['COMPOSER_HOME'] ?: "{$this->projectDir}/var/cache/composer",
         ];
 
         $io = new SymfonyStyle($input, $output);
@@ -62,6 +72,35 @@ class SystemSetupCommand extends Command
 
         if (!$input->getOption('force') && file_exists($this->projectDir . '/.env')) {
             $io->comment('Instance has already been set-up. To start over, please delete your .env file.');
+
+            return 0;
+        }
+
+        if (!$input->isInteractive()) {
+            $env['APP_ENV'] = $input->getOption('APP_ENV') ?? $_ENV['APP_ENV'] ?? $env['APP_ENV'];
+            $this->generateJwt($input, $io);
+            $key = Key::createNewRandomKey();
+            $env['APP_SECRET'] = $key->saveToAsciiSafeString();
+            $env['INSTANCE_ID'] = $this->generateInstanceId();
+            $_ENV['DATABASE_URL'] = $_ENV['DATABASE_URL'] ?? $env['DATABASE_URL'];
+            $_ENV['DATABASE_NAME'] = $_ENV['DATABASE_NAME'] ?? $env['DATABASE_NAME'];
+            $env['DATABASE_URL'] = $input->getOption('DATABASE_URL') ? $this->getDsn($input, $io) . '/' . $input->getOption('DATABASE_NAME') : $_ENV['DATABASE_URL'] . '/' . $_ENV['DATABASE_NAME'];
+
+            $_ENV['APP_URL'] = $_ENV['APP_URL'] ?? $env['APP_URL'];
+            if ($input->getOption('APP_URL') && !is_array($input->getOption('APP_URL'))) {
+                $env['APP_URL'] = trim((string) $input->getOption('APP_URL'));
+            } else {
+                $env['APP_URL'] = $_ENV['APP_URL'];
+            }
+
+            $_ENV['BLUE_GREEN_DEPLOYMENT'] = $_ENV['BLUE_GREEN_DEPLOYMENT'] ?? $env['BLUE_GREEN_DEPLOYMENT'];
+            if ($input->getOption('BLUE_GREEN_DEPLOYMENT')) {
+                $env['BLUE_GREEN_DEPLOYMENT'] = (int) $input->getOption('BLUE_GREEN_DEPLOYMENT');
+            } else {
+                $env['BLUE_GREEN_DEPLOYMENT'] = $_ENV['BLUE_GREEN_DEPLOYMENT'];
+            }
+
+            $this->createEnvFile($input, $io, $env);
 
             return 0;
         }
@@ -128,7 +167,7 @@ class SystemSetupCommand extends Command
             return $value;
         };
 
-        $dsn = $input->getOption('database-url');
+        $dsn = $input->getOption('database-url') ? $input->getOption('database-url') : $input->getOption('DATABASE_URL');
         if (\is_string($dsn)) {
             $params = parse_url($dsn);
             $dsnWithoutDb = sprintf(
@@ -160,7 +199,7 @@ class SystemSetupCommand extends Command
             $io->note('Checking database credentials');
 
             $connection = DriverManager::getConnection(['url' => $dsnWithoutDb, 'charset' => 'utf8mb4'], new Configuration());
-            $connection->exec('SELECT 1');
+            $connection->executeStatement('SELECT 1');
         }
 
         return $dsn;

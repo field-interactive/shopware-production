@@ -1,6 +1,7 @@
 
 /var
 !/var/plugins.json
+!/var/.htaccess
 /.*
 !/.htaccess
 **/*.git
